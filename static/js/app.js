@@ -100,11 +100,11 @@ function detectLogLevel(message) {
 function appendLog(data) {
     // Store log with detected level
     data.detectedLevel = detectLogLevel(data.message);
-    allLogs.push(data);
+    allLogs.unshift(data);  // Add to beginning (most recent first)
 
     // Limit stored logs to prevent memory issues
     if (allLogs.length > 1000) {
-        allLogs = allLogs.slice(-500);
+        allLogs = allLogs.slice(0, 500);  // Keep first 500 (most recent)
     }
 
     // Check if this log passes current filters
@@ -114,15 +114,15 @@ function appendLog(data) {
     if (filterScript && data.script_id != filterScript) return;
     if (filterLevel && data.detectedLevel !== filterLevel) return;
 
-    // Render this single log entry
-    renderLogEntry(data);
+    // Render this single log entry at the top
+    renderLogEntry(data, true);
 
     if (logAutoscroll.checked) {
-        logContainer.scrollTop = logContainer.scrollHeight;
+        logContainer.scrollTop = 0;  // Scroll to top (most recent)
     }
 }
 
-function renderLogEntry(data) {
+function renderLogEntry(data, prepend = false) {
     const placeholder = logContainer.querySelector('.text-dark-500');
     if (placeholder) placeholder.remove();
 
@@ -139,7 +139,12 @@ function renderLogEntry(data) {
     entry.className = `py-0.5 ${logClass}`;
     const time = new Date(data.timestamp).toLocaleTimeString();
     entry.textContent = `${time}  ${data.script_name.padEnd(15)}  ${data.message}`;
-    logContainer.appendChild(entry);
+
+    if (prepend) {
+        logContainer.insertBefore(entry, logContainer.firstChild);
+    } else {
+        logContainer.appendChild(entry);
+    }
 }
 
 function renderLogs() {
@@ -149,7 +154,7 @@ function renderLogs() {
     // Clear container
     logContainer.innerHTML = '';
 
-    // Filter and render
+    // Filter and render (allLogs already in reverse chronological order)
     const filtered = allLogs.filter(log => {
         if (filterScript && log.script_id != filterScript) return false;
         if (filterLevel && log.detectedLevel !== filterLevel) return false;
@@ -161,10 +166,10 @@ function renderLogs() {
         return;
     }
 
-    filtered.forEach(renderLogEntry);
+    filtered.forEach(log => renderLogEntry(log));
 
     if (logAutoscroll.checked) {
-        logContainer.scrollTop = logContainer.scrollHeight;
+        logContainer.scrollTop = 0;  // Scroll to top (most recent)
     }
 }
 
@@ -183,11 +188,11 @@ async function loadHistoricalLogs() {
 
         const logs = await response.json();
 
-        // Clear existing logs and load historical ones
+        // Clear existing logs and load historical ones (reverse to show most recent first)
         allLogs = logs.map(log => ({
             ...log,
             detectedLevel: detectLogLevel(log.message),
-        }));
+        })).reverse();
 
         renderLogs();
     } catch (error) {
