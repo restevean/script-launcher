@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Script Launcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-running { background: #22c55e; animation: pulse 2s infinite; }
+        .status-idle { background: #6b7280; }
+        .status-paused { background: #eab308; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .log-stdout { color: #e2e8f0; }
+        .log-stderr { color: #f87171; }
+        .log-info { color: #60a5fa; }
+        .log-debug { color: #facc15; }
+        .log-warning { color: #fb923c; }
+        .log-error { color: #ef4444; }
+
+        .weekday-btn {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;
+            background: #334155; color: #94a3b8; transition: all 0.2s;
+        }
+        .weekday-btn:hover { background: #475569; }
+        .weekday-btn.active { background: #3b82f6; color: white; }
+    </style>
+</head>
+<body class="bg-dark-950 text-dark-100 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-dark-900 border-b border-dark-700">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <h1 class="text-lg font-semibold text-white">Script Launcher</h1>
+            <div class="flex items-center gap-3">
+                <nav class="flex bg-dark-800 rounded-lg p-1">
+                    <button id="tab-scripts" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white">
+                        Scripts
+                    </button>
+                    <button id="tab-logs" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium text-dark-300 hover:text-white">
+                        Logs
+                    </button>
+                </nav>
+                <button id="btn-new-script" class="px-4 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium text-white transition-colors">
+                    + Nuevo Script
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto p-6">
+
+        <!-- Scripts Tab -->
+        <section id="panel-scripts" class="tab-panel">
+            <div class="grid grid-cols-12 gap-6" style="height: calc(100vh - 140px);">
+
+                <!-- Script List (4 cols) -->
+                <div class="col-span-4 bg-dark-900 rounded-xl border border-dark-700 flex flex-col">
+                    <div class="px-4 py-3 border-b border-dark-700">
+                        <h2 class="text-sm font-semibold text-dark-200">Scripts Registrados</h2>
+                    </div>
+                    <div id="script-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                        <p class="text-dark-500 text-sm p-3">Cargando...</p>
+                    </div>
+                </div>
+
+                <!-- Script Detail (8 cols) -->
+                <div class="col-span-8 bg-dark-900 rounded-xl border border-dark-700 flex flex-col">
+                    <div class="px-4 py-3 border-b border-dark-700">
+                        <h2 id="detail-title" class="text-sm font-semibold text-dark-200">Detalle del Script</h2>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-6">
+                        <div id="script-detail" class="hidden"></div>
+                        <div id="script-placeholder" class="h-full flex items-center justify-center text-dark-500 text-sm">
+                            Selecciona un script o crea uno nuevo
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Logs Tab -->
+        <section id="panel-logs" class="tab-panel hidden">
+            <div class="bg-dark-900 rounded-xl border border-dark-700" style="height: calc(100vh - 140px);">
+                <div class="px-4 py-3 border-b border-dark-700 flex items-center gap-4">
+                    <h2 class="text-sm font-semibold text-dark-200">Logs en Tiempo Real</h2>
+                    <div class="flex-1"></div>
+                    <select id="log-filter-script" class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-1.5 text-sm">
+                        <option value="">Todos los scripts</option>
+                    </select>
+                    <select id="log-filter-level" class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-1.5 text-sm">
+                        <option value="">Todos los niveles</option>
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="INFO">INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="ERROR">ERROR</option>
+                    </select>
+                    <input type="date" id="log-filter-date" class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-1.5 text-sm">
+                    <label class="flex items-center gap-2 text-sm text-dark-300">
+                        <input type="checkbox" id="log-autoscroll" checked class="rounded border-dark-600">
+                        Auto-scroll
+                    </label>
+                    <button id="btn-clear-logs" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 rounded-lg text-sm transition-colors">
+                        Limpiar
+                    </button>
+                </div>
+                <div id="log-container" class="p-4 overflow-y-auto font-mono text-xs" style="height: calc(100% - 52px);">
+                    <p class="text-dark-500">Conectando al stream de logs...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/app.js?v=4"></script>
+</body>
+</html>

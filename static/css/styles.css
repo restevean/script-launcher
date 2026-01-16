@@ -1,0 +1,87 @@
+/* Custom styles for Script Launcher */
+
+/* Tab styling */
+.tab-btn.active {
+    background-color: rgb(37 99 235); /* blue-600 */
+}
+
+/* Script list item */
+.script-item {
+    @apply p-3 rounded-lg cursor-pointer transition-colors;
+    @apply hover:bg-gray-700;
+}
+
+.script-item.active {
+    @apply bg-gray-700 border-l-4 border-blue-500;
+}
+
+.script-item.running {
+    @apply border-l-4 border-green-500;
+}
+
+/* Status indicators */
+.status-indicator {
+    @apply w-2 h-2 rounded-full inline-block;
+}
+
+.status-running {
+    @apply bg-green-500 animate-pulse;
+}
+
+.status-idle {
+    @apply bg-gray-500;
+}
+
+.status-paused {
+    @apply bg-yellow-500;
+}
+
+/* Log entry colors */
+.log-entry {
+    @apply py-1;
+}
+
+.log-stdout {
+    @apply text-gray-100;
+}
+
+.log-stderr {
+    @apply text-red-400;
+}
+
+.log-info {
+    @apply text-blue-400;
+}
+
+/* Form styling */
+.form-input {
+    @apply w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2;
+    @apply focus:outline-none focus:border-blue-500;
+}
+
+.form-label {
+    @apply block text-sm font-medium text-gray-300 mb-1;
+}
+
+/* Button styles */
+.btn-primary {
+    @apply px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium;
+}
+
+.btn-danger {
+    @apply px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-medium;
+}
+
+.btn-secondary {
+    @apply px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg font-medium;
+}
+
+/* Weekday checkboxes */
+.weekday-checkbox {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer;
+    @apply bg-gray-700 hover:bg-gray-600 transition-colors;
+}
+
+.weekday-checkbox.active {
+    @apply bg-blue-600;
+}
