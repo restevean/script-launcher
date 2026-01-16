@@ -24,9 +24,7 @@ class Script(Base):
     # Schedule configuration (integrated)
     repeat_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     interval_value: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    interval_unit: Mapped[str | None] = mapped_column(
-        String(20), nullable=True
-    )  # seconds, minutes, hours, days
+    interval_unit: Mapped[str | None] = mapped_column(String(20), nullable=True)  # seconds, minutes, hours, days
 
     # Weekdays filter (JSON array: [0,1,2,3,4] for Mon-Fri, null for all days)
     weekdays: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -40,9 +38,7 @@ class Script(Base):
     next_run: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(UTC), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC),

@@ -217,9 +217,7 @@ class SchedulerService:
         repeat_enabled: bool,
     ) -> None:
         """Execute a scheduled start job (one-time execution)."""
-        asyncio.run(
-            self._execute_scheduled_start_async(script_id, script_name, script_path, repeat_enabled)
-        )
+        asyncio.run(self._execute_scheduled_start_async(script_id, script_name, script_path, repeat_enabled))
 
     async def _execute_scheduled_start_async(
         self,
@@ -249,9 +247,7 @@ class SchedulerService:
 
         # Execute
         try:
-            await script_executor.run(
-                script_id, script_name, script_path, trigger="scheduled_start"
-            )
+            await script_executor.run(script_id, script_name, script_path, trigger="scheduled_start")
         except Exception as e:
             await log_manager.write(
                 script_id,

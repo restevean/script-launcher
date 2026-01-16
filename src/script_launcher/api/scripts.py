@@ -122,9 +122,7 @@ async def update_script(
 
     # Handle weekdays conversion
     if "weekdays" in update_data:
-        update_data["weekdays"] = (
-            json.dumps(update_data["weekdays"]) if update_data["weekdays"] else None
-        )
+        update_data["weekdays"] = json.dumps(update_data["weekdays"]) if update_data["weekdays"] else None
 
     for field, value in update_data.items():
         setattr(script, field, value)

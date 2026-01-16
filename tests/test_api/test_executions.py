@@ -125,6 +125,4 @@ async def test_script_without_repeat_deactivates_after_execution(
     get_response = await client.get(f"/api/scripts/{script_id}")
     assert get_response.status_code == 200
     script_data = get_response.json()
-    assert (
-        script_data["is_active"] is False
-    ), "Script without repetition should be deactivated after execution"
+    assert script_data["is_active"] is False, "Script without repetition should be deactivated after execution"

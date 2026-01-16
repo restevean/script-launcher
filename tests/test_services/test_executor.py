@@ -177,9 +177,7 @@ class TestScriptExecutor:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_parallel_execution_blocked(
-        self, executor: ScriptExecutor, slow_script: Path
-    ) -> None:
+    async def test_parallel_execution_blocked(self, executor: ScriptExecutor, slow_script: Path) -> None:
         """Test that parallel execution of same script is blocked."""
         # Start first execution
         task1 = asyncio.create_task(

@@ -43,10 +43,7 @@ class ScriptExecutor:
 
     def is_running(self, script_id: int) -> bool:
         """Check if a script is currently running."""
-        return any(
-            e.script_id == script_id and e.status == "running"
-            for e in self._active_executions.values()
-        )
+        return any(e.script_id == script_id and e.status == "running" for e in self._active_executions.values())
 
     def get_active_executions(self) -> list[Execution]:
         """Get all active executions."""
@@ -129,8 +126,7 @@ class ScriptExecutor:
                     script_id,
                     script_name,
                     "INFO",
-                    f"Execution finished (exit_code={execution.exit_code}, "
-                    f"duration={duration:.2f}s)",
+                    f"Execution finished (exit_code={execution.exit_code}, duration={duration:.2f}s)",
                 )
 
             except Exception as e:

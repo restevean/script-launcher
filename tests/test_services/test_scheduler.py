@@ -15,9 +15,7 @@ def scheduler() -> Generator[SchedulerService, None, None]:
     with patch("script_launcher.services.scheduler.BackgroundScheduler") as mock_bg:
         mock_instance = MagicMock()
         mock_instance.running = False
-        mock_instance.get_job.return_value = MagicMock(
-            trigger=MagicMock(interval=timedelta(seconds=10))
-        )
+        mock_instance.get_job.return_value = MagicMock(trigger=MagicMock(interval=timedelta(seconds=10)))
         mock_instance.add_job.return_value = MagicMock(id="mock_job_id")
         mock_bg.return_value = mock_instance
 
@@ -90,9 +88,7 @@ class TestSchedulerService:
         job = scheduler._scheduler.get_job(job_id)
         assert job is not None
 
-    def test_add_job_without_repeat(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_add_job_without_repeat(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test adding a job when repeat is disabled does nothing."""
         mock_script.repeat_enabled = False
 
@@ -100,9 +96,7 @@ class TestSchedulerService:
 
         assert mock_script.id not in scheduler._jobs
 
-    def test_add_job_without_interval(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_add_job_without_interval(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test adding a job without interval values does nothing."""
         mock_script.interval_value = None
 
@@ -138,9 +132,7 @@ class TestSchedulerService:
 
         assert mock_script.id not in scheduler._jobs
 
-    def test_update_job_disable_repeat(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_update_job_disable_repeat(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test updating a job when repeat is disabled removes it."""
         scheduler.add_job(mock_script)
         assert mock_script.id in scheduler._jobs
@@ -173,9 +165,7 @@ class TestSchedulerService:
         next_run = scheduler.get_next_run(999)
         assert next_run is None
 
-    def test_add_job_replaces_existing(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_add_job_replaces_existing(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test adding a job replaces existing job for same script."""
         scheduler.add_job(mock_script)
         assert mock_script.id in scheduler._jobs
@@ -188,9 +178,7 @@ class TestSchedulerService:
         assert scheduler._scheduler.add_job.call_count == first_call_count + 1
         assert mock_script.id in scheduler._jobs
 
-    def test_add_job_with_weekdays(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_add_job_with_weekdays(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test adding a job with weekday filter."""
         mock_script.weekdays = "[0, 1, 2, 3, 4]"  # JSON string
 
@@ -198,9 +186,7 @@ class TestSchedulerService:
 
         assert mock_script.id in scheduler._jobs
 
-    def test_add_scheduled_start_job(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_add_scheduled_start_job(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test adding a scheduled start job."""
         mock_script.scheduled_start_enabled = True
         mock_script.scheduled_start_datetime = datetime.now(UTC) + timedelta(hours=1)
@@ -209,9 +195,7 @@ class TestSchedulerService:
 
         assert mock_script.id in scheduler._scheduled_start_jobs
 
-    def test_add_scheduled_start_job_disabled(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_add_scheduled_start_job_disabled(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test adding a scheduled start job when disabled does nothing."""
         mock_script.scheduled_start_enabled = False
         mock_script.scheduled_start_datetime = datetime.now(UTC) + timedelta(hours=1)
@@ -220,9 +204,7 @@ class TestSchedulerService:
 
         assert mock_script.id not in scheduler._scheduled_start_jobs
 
-    def test_add_scheduled_start_job_no_datetime(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_add_scheduled_start_job_no_datetime(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test adding a scheduled start job without datetime does nothing."""
         mock_script.scheduled_start_enabled = True
         mock_script.scheduled_start_datetime = None
@@ -231,9 +213,7 @@ class TestSchedulerService:
 
         assert mock_script.id not in scheduler._scheduled_start_jobs
 
-    def test_remove_scheduled_start_job(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_remove_scheduled_start_job(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test removing a scheduled start job."""
         mock_script.scheduled_start_enabled = True
         mock_script.scheduled_start_datetime = datetime.now(UTC) + timedelta(hours=1)
@@ -244,9 +224,7 @@ class TestSchedulerService:
         scheduler.remove_scheduled_start_job(mock_script.id)
         assert mock_script.id not in scheduler._scheduled_start_jobs
 
-    def test_update_job_with_scheduled_start(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_update_job_with_scheduled_start(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test update_job with future scheduled start delays repeat job.
 
         When a script has both repeat_enabled and a future scheduled_start:
@@ -262,9 +240,7 @@ class TestSchedulerService:
         assert mock_script.id not in scheduler._jobs
         assert mock_script.id in scheduler._scheduled_start_jobs
 
-    def test_update_job_disables_scheduled_start(
-        self, scheduler: SchedulerService, mock_script: MagicMock
-    ) -> None:
+    def test_update_job_disables_scheduled_start(self, scheduler: SchedulerService, mock_script: MagicMock) -> None:
         """Test update_job removes scheduled start job when disabled."""
         mock_script.scheduled_start_enabled = True
         mock_script.scheduled_start_datetime = datetime.now(UTC) + timedelta(hours=1)

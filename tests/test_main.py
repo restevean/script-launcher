@@ -49,13 +49,9 @@ async def test_load_scheduled_scripts_deactivates_past_scheduled_start(
         result = await session.execute(select(Script).where(Script.id == script_id))
         updated_script = result.scalar_one()
 
-        assert (
-            updated_script.is_active is False
-        ), "Script with past scheduled_start should be deactivated"
+        assert updated_script.is_active is False, "Script with past scheduled_start should be deactivated"
         # User's config should be preserved
-        assert (
-            updated_script.scheduled_start_enabled is True
-        ), "scheduled_start_enabled should remain True"
+        assert updated_script.scheduled_start_enabled is True, "scheduled_start_enabled should remain True"
 
 
 @pytest.mark.asyncio
@@ -98,12 +94,8 @@ async def test_load_scheduled_scripts_keeps_future_scheduled_start_active(
         result = await session.execute(select(Script).where(Script.id == script_id))
         updated_script = result.scalar_one()
 
-        assert (
-            updated_script.is_active is True
-        ), "Script with future scheduled_start should remain active"
-        assert (
-            updated_script.scheduled_start_enabled is True
-        ), "scheduled_start_enabled should remain True"
+        assert updated_script.is_active is True, "Script with future scheduled_start should remain active"
+        assert updated_script.scheduled_start_enabled is True, "scheduled_start_enabled should remain True"
 
 
 @pytest.mark.asyncio
@@ -223,10 +215,6 @@ async def test_load_scheduled_scripts_deactivates_naive_past_datetime(
         result = await session.execute(select(Script).where(Script.id == script_id))
         updated_script = result.scalar_one()
 
-        assert (
-            updated_script.is_active is False
-        ), "Script with naive past datetime should be deactivated"
+        assert updated_script.is_active is False, "Script with naive past datetime should be deactivated"
         # User's config should be preserved
-        assert (
-            updated_script.scheduled_start_enabled is True
-        ), "scheduled_start_enabled should remain True"
+        assert updated_script.scheduled_start_enabled is True, "scheduled_start_enabled should remain True"

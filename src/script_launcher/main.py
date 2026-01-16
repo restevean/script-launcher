@@ -54,20 +54,14 @@ async def load_scheduled_scripts() -> None:
             # Case 1: Script has repetition enabled - load repeat job
             if script.repeat_enabled:
                 scheduler.add_job(script)
-                print(
-                    f"Loaded repeat job: {script.name} "
-                    f"(every {script.interval_value} {script.interval_unit})"
-                )
+                print(f"Loaded repeat job: {script.name} (every {script.interval_value} {script.interval_unit})")
 
             # Case 2: Script has scheduled start enabled
             if script.scheduled_start_enabled and script.scheduled_start_datetime:
                 if not is_datetime_in_past(script.scheduled_start_datetime):
                     # Future datetime - load scheduled start job
                     scheduler.add_scheduled_start_job(script)
-                    print(
-                        f"Loaded scheduled start: {script.name} "
-                        f"(at {script.scheduled_start_datetime})"
-                    )
+                    print(f"Loaded scheduled start: {script.name} (at {script.scheduled_start_datetime})")
                 else:
                     # Past datetime - deactivate if no repetition
                     # Keep scheduled_start_enabled/datetime intact (user's config)
