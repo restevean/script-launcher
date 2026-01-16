@@ -1,7 +1,6 @@
 """Scripts CRUD API endpoints."""
 
 import json
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -11,42 +10,7 @@ from script_launcher.database import get_db
 from script_launcher.models import Script
 from script_launcher.schemas import ScriptCreate, ScriptRead, ScriptUpdate
 from script_launcher.services.scheduler import get_scheduler_service
-
-
-def is_datetime_in_past(dt: datetime) -> bool:
-    """Check if a datetime is in the past.
-
-    Handles both naive and timezone-aware datetimes:
-    - Naive datetimes are treated as LOCAL time (what the user entered)
-    - Timezone-aware datetimes are compared directly with UTC
-    """
-    if dt.tzinfo is None:
-        # Naive datetime - compare with local time
-        return dt < datetime.now()
-    else:
-        # Timezone-aware datetime - compare with UTC
-        return dt < datetime.now(UTC)
-
-
-def should_script_remain_active(script: Script) -> bool:
-    """Determine if a script should remain active based on its configuration.
-
-    A script should remain active only if it has valid scheduling:
-    - Has repeat_enabled = True, OR
-    - Has scheduled_start_enabled = True with a future datetime
-    """
-    # If repeat is enabled, script can remain active
-    if script.repeat_enabled:
-        return True
-
-    # If scheduled start is enabled with a future datetime, script can remain active
-    if script.scheduled_start_enabled and script.scheduled_start_datetime:
-        if not is_datetime_in_past(script.scheduled_start_datetime):
-            return True
-
-    # No valid scheduling - script should be deactivated
-    return False
-
+from script_launcher.utils import should_script_remain_active
 
 router = APIRouter(prefix="/api/scripts", tags=["scripts"])
 

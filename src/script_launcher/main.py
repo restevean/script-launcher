@@ -1,7 +1,6 @@
 """FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -13,22 +12,8 @@ from script_launcher.config import settings
 from script_launcher.database import async_session_maker, init_db
 from script_launcher.models import Script
 from script_launcher.services.scheduler import get_scheduler_service
+from script_launcher.utils import is_datetime_in_past
 from script_launcher.websocket import websocket_router
-
-
-def is_datetime_in_past(dt: datetime) -> bool:
-    """Check if a datetime is in the past.
-
-    Handles both naive and timezone-aware datetimes:
-    - Naive datetimes are treated as LOCAL time (what the user entered)
-    - Timezone-aware datetimes are compared directly
-    """
-    if dt.tzinfo is None:
-        # Naive datetime - compare with local time
-        return dt < datetime.now()
-    else:
-        # Timezone-aware datetime - compare with UTC
-        return dt < datetime.now(UTC)
 
 
 async def load_scheduled_scripts() -> None:
