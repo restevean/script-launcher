@@ -31,6 +31,10 @@ class Script(Base):
     # Weekdays filter (JSON array: [0,1,2,3,4] for Mon-Fri, null for all days)
     weekdays: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
+    # Scheduled start (one-time execution at specific datetime)
+    scheduled_start_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    scheduled_start_datetime: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     # Scheduling timestamps
     last_run: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     next_run: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

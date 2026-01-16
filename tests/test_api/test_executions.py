@@ -69,3 +69,62 @@ async def test_get_execution_not_found(client: AsyncClient) -> None:
     """Test getting a non-existent execution returns 404."""
     response = await client.get("/api/executions/non-existent-id")
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_script_without_repeat_deactivates_after_execution(
+    client: AsyncClient,
+    tmp_path,
+) -> None:
+    """Test that a script without repetition is deactivated after execution.
+
+    Scenario:
+    - Script has repeat_enabled = False
+    - Script has scheduled_start_enabled = False
+    - Script is active and executed
+    - After execution completes, script should be deactivated
+
+    This ensures scripts without scheduling don't remain active forever
+    after being executed.
+    """
+    import asyncio
+
+    # Create a simple test script that exits quickly
+    test_script = tmp_path / "quick_script.py"
+    test_script.write_text('print("Done")\n')
+
+    # Create script without repetition
+    script_data = {
+        "name": "No Repeat Script",
+        "path": str(test_script),
+        "repeat_enabled": False,
+        "scheduled_start_enabled": False,
+    }
+    create_response = await client.post("/api/scripts", json=script_data)
+    assert create_response.status_code == 201
+    script_id = create_response.json()["id"]
+
+    # Enable the script
+    enable_response = await client.post(f"/api/scripts/{script_id}/enable")
+    assert enable_response.status_code == 200
+    assert enable_response.json()["is_active"] is True
+
+    # Execute the script
+    run_response = await client.post(f"/api/scripts/{script_id}/run")
+    assert run_response.status_code == 200
+
+    # Wait for execution to complete and script to be deactivated
+    # Use a loop with timeout to handle background task timing
+    for _ in range(20):  # Max 2 seconds
+        await asyncio.sleep(0.1)
+        get_response = await client.get(f"/api/scripts/{script_id}")
+        if get_response.json()["is_active"] is False:
+            break
+
+    # Verify script is now deactivated
+    get_response = await client.get(f"/api/scripts/{script_id}")
+    assert get_response.status_code == 200
+    script_data = get_response.json()
+    assert (
+        script_data["is_active"] is False
+    ), "Script without repetition should be deactivated after execution"

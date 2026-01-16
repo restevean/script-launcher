@@ -37,7 +37,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 timeout = 10
-timeout_method = "thread"
+timeout_method = "signal"
 
 [tool.ruff]
 line-length = 100

@@ -75,8 +75,14 @@ uv run pre-commit run --all-files
 ## Architecture Notes
 
 - **Single-user:** No authentication required
-- **Script model:** Includes schedule configuration (repeat_enabled, interval, weekdays)
-- **Execution lock:** Same script cannot run in parallel
+- **Script model:** Includes schedule configuration:
+  - `scheduled_start_enabled` / `scheduled_start_datetime`: One-time execution at specific date/time
+  - `repeat_enabled` / `interval_value` / `interval_unit`: Periodic execution
+  - `weekdays`: Filter execution to specific days of the week
+- **Execution logic:**
+  - Scripts with future scheduled_start are activated but not executed immediately
+  - Scripts without repeat are auto-deactivated after execution
+  - Same script cannot run in parallel (execution lock)
 - **Logs:** Daily text files with format `TIMESTAMP|SCRIPT_NAME|LEVEL|MESSAGE`
 - **WebSocket:** Real-time log streaming to frontend
 

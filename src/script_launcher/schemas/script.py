@@ -20,6 +20,10 @@ class ScriptBase(BaseModel):
     interval_unit: str | None = Field(None, pattern="^(seconds|minutes|hours|days)$")
     weekdays: list[int] | None = Field(None, description="Days of week: 0=Mon, 6=Sun")
 
+    # Scheduled start (one-time execution)
+    scheduled_start_enabled: bool = False
+    scheduled_start_datetime: datetime | None = None
+
 
 class ScriptCreate(ScriptBase):
     """Schema for creating a new script."""
@@ -38,6 +42,8 @@ class ScriptUpdate(BaseModel):
     interval_value: int | None = Field(None, ge=1)
     interval_unit: str | None = Field(None, pattern="^(seconds|minutes|hours|days)$")
     weekdays: list[int] | None = None
+    scheduled_start_enabled: bool | None = None
+    scheduled_start_datetime: datetime | None = None
 
 
 class ScriptRead(ScriptBase):

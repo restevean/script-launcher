@@ -1,13 +1,42 @@
 """Executions API endpoints."""
 
+from datetime import datetime
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from script_launcher.database import get_db
+from script_launcher.database import async_session_maker, get_db
 from script_launcher.models import Script
 from script_launcher.services.executor import script_executor
+from script_launcher.services.log_manager import log_manager
 
 router = APIRouter(prefix="/api", tags=["executions"])
+
+
+def _is_datetime_in_past(dt: datetime) -> bool:
+    """Check if a datetime is in the past (naive datetimes treated as local time)."""
+    if dt.tzinfo is None:
+        return dt < datetime.now()
+    from datetime import UTC
+
+    return dt < datetime.now(UTC)
+
+
+def _should_deactivate_after_execution(script: Script) -> bool:
+    """Determine if a script should be deactivated after execution.
+
+    A script should be deactivated after execution if:
+    - It doesn't have repeat_enabled (no periodic execution)
+    - AND it doesn't have a future scheduled_start (no pending one-time execution)
+    """
+    if script.repeat_enabled:
+        return False
+
+    if script.scheduled_start_enabled and script.scheduled_start_datetime:
+        if not _is_datetime_in_past(script.scheduled_start_datetime):
+            return False  # Has a future scheduled start
+
+    return True
 
 
 async def _run_script_task(script_id: int, script_name: str, script_path: str) -> None:
@@ -16,6 +45,22 @@ async def _run_script_task(script_id: int, script_name: str, script_path: str) -
         await script_executor.run(script_id, script_name, script_path, trigger="manual")
     except Exception:
         pass  # Errors are logged by the executor
+
+    # After execution, check if script should be deactivated
+    try:
+        async with async_session_maker() as session:
+            script = await session.get(Script, script_id)
+            if script and script.is_active and _should_deactivate_after_execution(script):
+                script.is_active = False
+                await session.commit()
+                await log_manager.write(
+                    script_id,
+                    script_name,
+                    "INFO",
+                    "Script deactivated after execution (no repetition configured)",
+                )
+    except Exception:
+        pass  # Best effort - don't fail if deactivation fails
 
 
 @router.post("/scripts/{script_id}/run")

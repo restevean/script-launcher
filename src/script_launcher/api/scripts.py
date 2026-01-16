@@ -1,6 +1,7 @@
 """Scripts CRUD API endpoints."""
 
 import json
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -10,6 +11,42 @@ from script_launcher.database import get_db
 from script_launcher.models import Script
 from script_launcher.schemas import ScriptCreate, ScriptRead, ScriptUpdate
 from script_launcher.services.scheduler import get_scheduler_service
+
+
+def is_datetime_in_past(dt: datetime) -> bool:
+    """Check if a datetime is in the past.
+
+    Handles both naive and timezone-aware datetimes:
+    - Naive datetimes are treated as LOCAL time (what the user entered)
+    - Timezone-aware datetimes are compared directly with UTC
+    """
+    if dt.tzinfo is None:
+        # Naive datetime - compare with local time
+        return dt < datetime.now()
+    else:
+        # Timezone-aware datetime - compare with UTC
+        return dt < datetime.now(UTC)
+
+
+def should_script_remain_active(script: Script) -> bool:
+    """Determine if a script should remain active based on its configuration.
+
+    A script should remain active only if it has valid scheduling:
+    - Has repeat_enabled = True, OR
+    - Has scheduled_start_enabled = True with a future datetime
+    """
+    # If repeat is enabled, script can remain active
+    if script.repeat_enabled:
+        return True
+
+    # If scheduled start is enabled with a future datetime, script can remain active
+    if script.scheduled_start_enabled and script.scheduled_start_datetime:
+        if not is_datetime_in_past(script.scheduled_start_datetime):
+            return True
+
+    # No valid scheduling - script should be deactivated
+    return False
+
 
 router = APIRouter(prefix="/api/scripts", tags=["scripts"])
 
@@ -57,6 +94,8 @@ async def create_script(
         interval_value=script_data.interval_value,
         interval_unit=script_data.interval_unit,
         weekdays=weekdays_json,
+        scheduled_start_enabled=script_data.scheduled_start_enabled,
+        scheduled_start_datetime=script_data.scheduled_start_datetime,
     )
     db.add(script)
     await db.flush()
@@ -90,11 +129,20 @@ async def update_script(
     for field, value in update_data.items():
         setattr(script, field, value)
 
+    # Check if active script should be deactivated due to invalid scheduling
+    # Keep scheduled_start_enabled/datetime intact (user's config)
+    scheduler = get_scheduler_service()
+    if script.is_active and not should_script_remain_active(script):
+        script.is_active = False
+        # Remove all scheduler jobs
+        scheduler.remove_job(script_id)
+        scheduler.remove_scheduled_start_job(script_id)
+    else:
+        # Update scheduler based on new configuration
+        scheduler.update_job(script)
+
     await db.flush()
     await db.refresh(script)
-
-    # Update scheduler based on new configuration
-    get_scheduler_service().update_job(script)
 
     return script
 
@@ -148,7 +196,8 @@ async def disable_script(
     await db.flush()
     await db.refresh(script)
 
-    # Remove from scheduler
+    # Remove from scheduler (both repeat and scheduled start jobs)
     get_scheduler_service().remove_job(script_id)
+    get_scheduler_service().remove_scheduled_start_job(script_id)
 
     return script

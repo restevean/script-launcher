@@ -17,8 +17,10 @@ Open http://localhost:8000
 ## Features
 
 - Register Python scripts manually
-- Configure scheduled repetition (seconds, minutes, hours, days)
+- **Scheduled Start:** One-time execution at a specific date/time
+- **Repetition:** Periodic execution (seconds, minutes, hours, days)
 - Filter by days of the week
+- Combine scheduled start with repetition (start at X, then repeat every Y)
 - Real-time log streaming via WebSocket
 - Daily log files
 

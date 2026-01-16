@@ -1,6 +1,7 @@
 """FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -15,22 +16,75 @@ from script_launcher.services.scheduler import get_scheduler_service
 from script_launcher.websocket import websocket_router
 
 
+def is_datetime_in_past(dt: datetime) -> bool:
+    """Check if a datetime is in the past.
+
+    Handles both naive and timezone-aware datetimes:
+    - Naive datetimes are treated as LOCAL time (what the user entered)
+    - Timezone-aware datetimes are compared directly
+    """
+    if dt.tzinfo is None:
+        # Naive datetime - compare with local time
+        return dt < datetime.now()
+    else:
+        # Timezone-aware datetime - compare with UTC
+        return dt < datetime.now(UTC)
+
+
 async def load_scheduled_scripts() -> None:
-    """Load all scripts with active schedules into the scheduler."""
+    """Load all scripts with active schedules into the scheduler.
+
+    Rules:
+    - Scripts with repeat_enabled: Load into scheduler for periodic execution
+    - Scripts with scheduled_start_enabled (no repeat):
+      - If datetime is in the future: Load into scheduler
+      - If datetime is in the past: Deactivate the script
+    - Scripts that are already inactive: Leave them inactive
+    """
+    scheduler = get_scheduler_service()
+
     async with async_session_maker() as session:
+        # Get all active scripts
         result = await session.execute(
-            select(Script).where(
-                Script.is_active == True,  # noqa: E712
-                Script.repeat_enabled == True,  # noqa: E712
-            )
+            select(Script).where(Script.is_active == True)  # noqa: E712
         )
         scripts = result.scalars().all()
+
         for script in scripts:
-            get_scheduler_service().add_job(script)
-            print(
-                f"Loaded scheduled script: {script.name} "
-                f"(every {script.interval_value} {script.interval_unit})"
-            )
+            # Case 1: Script has repetition enabled - load repeat job
+            if script.repeat_enabled:
+                scheduler.add_job(script)
+                print(
+                    f"Loaded repeat job: {script.name} "
+                    f"(every {script.interval_value} {script.interval_unit})"
+                )
+
+            # Case 2: Script has scheduled start enabled
+            if script.scheduled_start_enabled and script.scheduled_start_datetime:
+                if not is_datetime_in_past(script.scheduled_start_datetime):
+                    # Future datetime - load scheduled start job
+                    scheduler.add_scheduled_start_job(script)
+                    print(
+                        f"Loaded scheduled start: {script.name} "
+                        f"(at {script.scheduled_start_datetime})"
+                    )
+                else:
+                    # Past datetime - deactivate if no repetition
+                    # Keep scheduled_start_enabled/datetime intact (user's config)
+                    if not script.repeat_enabled:
+                        script.is_active = False
+                        print(
+                            f"Deactivated expired script: {script.name} "
+                            f"(scheduled for {script.scheduled_start_datetime})"
+                        )
+
+            # Case 3: Script is active but has no scheduling at all
+            # (no repeat, no scheduled start) - deactivate it
+            if not script.repeat_enabled and not script.scheduled_start_enabled:
+                script.is_active = False
+                print(f"Deactivated script without scheduling: {script.name}")
+
+        await session.commit()
 
 
 @asynccontextmanager

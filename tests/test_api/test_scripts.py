@@ -188,3 +188,136 @@ async def test_list_scripts_filter_active(client: AsyncClient) -> None:
     scripts = response.json()
     assert len(scripts) == 1
     assert scripts[0]["name"] == "Active"
+
+
+@pytest.mark.asyncio
+async def test_create_script_with_scheduled_start(client: AsyncClient) -> None:
+    """Test creating a script with scheduled start configuration."""
+    script_data = {
+        "name": "Scheduled Start Script",
+        "path": "/path/to/script.py",
+        "scheduled_start_enabled": True,
+        "scheduled_start_datetime": "2026-01-20T10:30:00",
+    }
+    response = await client.post("/api/scripts", json=script_data)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["scheduled_start_enabled"] is True
+    assert data["scheduled_start_datetime"] == "2026-01-20T10:30:00"
+
+
+@pytest.mark.asyncio
+async def test_update_script_scheduled_start(client: AsyncClient) -> None:
+    """Test updating script scheduled start configuration."""
+    # Create script without scheduled start
+    script_data = {
+        "name": "Test",
+        "path": "/path.py",
+        "scheduled_start_enabled": False,
+    }
+    create_response = await client.post("/api/scripts", json=script_data)
+    script_id = create_response.json()["id"]
+
+    # Verify initial state
+    assert create_response.json()["scheduled_start_enabled"] is False
+    assert create_response.json()["scheduled_start_datetime"] is None
+
+    # Enable scheduled start
+    update_data = {
+        "scheduled_start_enabled": True,
+        "scheduled_start_datetime": "2026-01-25T14:00:00",
+    }
+    response = await client.put(f"/api/scripts/{script_id}", json=update_data)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["scheduled_start_enabled"] is True
+    assert data["scheduled_start_datetime"] == "2026-01-25T14:00:00"
+
+    # Verify the data persists on subsequent GET
+    get_response = await client.get(f"/api/scripts/{script_id}")
+    assert get_response.status_code == 200
+    get_data = get_response.json()
+    assert get_data["scheduled_start_enabled"] is True
+    assert get_data["scheduled_start_datetime"] == "2026-01-25T14:00:00"
+
+    # Also verify list endpoint returns the data
+    list_response = await client.get("/api/scripts")
+    assert list_response.status_code == 200
+    scripts = list_response.json()
+    script = next(s for s in scripts if s["id"] == script_id)
+    assert script["scheduled_start_enabled"] is True
+    assert script["scheduled_start_datetime"] == "2026-01-25T14:00:00"
+
+
+@pytest.mark.asyncio
+async def test_update_deactivates_script_without_valid_scheduling(
+    client: AsyncClient,
+) -> None:
+    """Test that updating a script deactivates it if no valid scheduling remains.
+
+    Scenario: Active script with repeat + past scheduled_start.
+    When repeat is disabled, script should be deactivated because
+    scheduled_start datetime is in the past.
+    """
+    # Create script with repeat enabled and past scheduled_start
+    script_data = {
+        "name": "Auto Deactivate Test",
+        "path": "/path.py",
+        "repeat_enabled": True,
+        "interval_value": 30,
+        "interval_unit": "seconds",
+        "scheduled_start_enabled": True,
+        "scheduled_start_datetime": "2020-01-01T10:00:00",  # Past datetime
+    }
+    create_response = await client.post("/api/scripts", json=script_data)
+    script_id = create_response.json()["id"]
+
+    # Enable the script
+    await client.post(f"/api/scripts/{script_id}/enable")
+
+    # Verify script is active
+    get_response = await client.get(f"/api/scripts/{script_id}")
+    assert get_response.json()["is_active"] is True
+
+    # Disable repeat - script should be auto-deactivated
+    update_data = {"repeat_enabled": False}
+    response = await client.put(f"/api/scripts/{script_id}", json=update_data)
+    assert response.status_code == 200
+    data = response.json()
+
+    # Script should now be inactive (no valid scheduling)
+    assert data["is_active"] is False
+    # User's config should be preserved
+    assert data["scheduled_start_enabled"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_keeps_script_active_with_valid_scheduling(
+    client: AsyncClient,
+) -> None:
+    """Test that script remains active if valid scheduling exists after update."""
+    # Create script with repeat enabled and future scheduled_start
+    script_data = {
+        "name": "Keep Active Test",
+        "path": "/path.py",
+        "repeat_enabled": True,
+        "interval_value": 30,
+        "interval_unit": "seconds",
+        "scheduled_start_enabled": True,
+        "scheduled_start_datetime": "2030-01-01T10:00:00",  # Future datetime
+    }
+    create_response = await client.post("/api/scripts", json=script_data)
+    script_id = create_response.json()["id"]
+
+    # Enable the script
+    await client.post(f"/api/scripts/{script_id}/enable")
+
+    # Disable repeat - script should remain active (future scheduled_start)
+    update_data = {"repeat_enabled": False}
+    response = await client.put(f"/api/scripts/{script_id}", json=update_data)
+    assert response.status_code == 200
+    data = response.json()
+
+    # Script should remain active (has future scheduled_start)
+    assert data["is_active"] is True
+    assert data["scheduled_start_enabled"] is True
